@@ -11,6 +11,7 @@ errors = { path = "../errors" }
 utils = { path = "../utils" }
 libs = { path = "../libs" }
 config = { path = "../config" }
+chrono = "0.4.31"
 
 # TODO: remove it?
 markdown = { path = "../markdown" }

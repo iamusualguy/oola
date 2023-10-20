@@ -60,6 +60,8 @@ pub struct Page {
     pub components: Vec<String>,
     /// The full URL for that page
     pub permalink: String,
+    /// The folder where this page came from
+    pub folderlink: String,
     /// The summary for the article, defaults to None
     /// When <!-- more --> is found in the text, will take the content up to that part
     /// as summary
@@ -185,6 +187,13 @@ impl Page {
             .collect::<Vec<_>>();
         page.permalink = config.make_permalink(&page.path);
 
+        let folderlink = if page.components.len() == 0 { 
+            "/".to_string()
+        } else {
+            page.components[..page.components.len() - 1].join("/")
+        };
+        page.folderlink = config.make_permalink(&folderlink);
+
         Ok(page)
     }
 
@@ -227,6 +236,8 @@ impl Page {
         );
         context.set_shortcode_definitions(shortcode_definitions);
         context.set_current_page_path(&self.file.relative);
+        context.set_current_page_parent_path(&self.folderlink);
+
         context.tera_context.insert("page", &SerializingPage::new(self, None, false));
 
         let res = render_content(&self.raw_content, &context)

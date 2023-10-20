@@ -13,6 +13,8 @@ use libs::pulldown_cmark::escape::escape_html;
 use libs::regex::Regex;
 use utils::site::resolve_internal_link;
 use utils::slugs::slugify_anchors;
+use utils::slugs::slugify_paths;
+use utils::slugs::SlugifyStrategy;
 use utils::table_of_contents::{make_table_of_contents, Heading};
 use utils::types::InsertAnchor;
 
@@ -58,7 +60,7 @@ fn insert_many<T>(input: &mut Vec<T>, elem_to_insert: Vec<(usize, T)>) {
 /// Colocated asset links refers to the files in the same directory.
 fn is_colocated_asset_link(link: &str) -> bool {
     !link.starts_with('/')
-        && !link.starts_with("..")
+        // && !link.starts_with("..") 
         && !link.starts_with('#')
         && !STARTS_WITH_SCHEMA_RE.is_match(link)
 }
@@ -134,6 +136,28 @@ fn find_anchor(anchors: &[String], name: String, level: u16) -> String {
     find_anchor(anchors, name, level + 1)
 }
 
+fn urldecode(s: &str) -> String {
+    let mut res = String::new();
+    let mut iter = s.chars();
+
+    while let Some(c) = iter.next() {
+        if c == '%' {
+            let left = iter.next();
+            let right = iter.next();
+            match (left, right) {
+                (Some(l), Some(r)) => {
+                    let byte = u8::from_str_radix(&format!("{}{}", l, r), 16).unwrap();
+                    res += &(byte as char).to_string();
+                }
+                _ => panic!(),
+            }
+        } else {
+            res += &c.to_string();
+        }
+    }
+    res
+}
+
 fn fix_link(
     link_type: LinkType,
     link: &str,
@@ -171,7 +195,20 @@ fn fix_link(
             }
         }
     } else if is_colocated_asset_link(link) {
-        format!("{}{}", context.current_page_permalink, link)
+        let mut my_string = String::from(link);
+        if my_string.ends_with(".md") {
+            my_string = my_string.trim_end_matches(".md").to_string();
+            let components = my_string
+            .split('/')
+            .map(|p| urldecode(p))
+            .map(|p| if p.starts_with("..") { p } else { slugify_paths(&p, SlugifyStrategy::On) })
+            .filter(|p| !p.is_empty())
+            .collect::<Vec<_>>();
+            
+            my_string = components.join("/");
+       
+        }
+        format!("{}{}", context.current_page_parent_path, my_string)
     } else if is_external_link(link) {
         external_links.push(link.to_owned());
         link.to_owned()
@@ -388,10 +425,10 @@ pub fn markdown_to_html(
                 }
                 Event::Start(Tag::Image(link_type, src, title)) => {
                     if is_colocated_asset_link(&src) {
-                        let link = format!("{}{}", context.current_page_permalink, &*src);
+                        let link = format!("{}{}", context.current_page_parent_path, &*src);
                         events.push(Event::Start(Tag::Image(link_type, link.into(), title)));
                     } else {
-                        events.push(Event::Start(Tag::Image(link_type, src, title)));
+                        events.push(Event::Start(Tag::Image(link_type, src, String::new().into())));
                     }
                 }
                 Event::Start(Tag::Link(link_type, link, title)) if link.is_empty() => {

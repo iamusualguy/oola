@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::Path;
 
 use errors::{bail, Context, Result};
@@ -7,6 +8,7 @@ use libs::{serde_yaml, toml};
 
 use crate::front_matter::page::PageFrontMatter;
 use crate::front_matter::section::SectionFrontMatter;
+use chrono::{DateTime, Local};
 
 static TOML_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
@@ -90,7 +92,21 @@ pub fn split_page_content<'c>(
     file_path: &Path,
     content: &'c str,
 ) -> Result<(PageFrontMatter, &'c str)> {
-    let (front_matter, content) = split_content(file_path, content)?;
+    let name = file_path.file_stem().unwrap().to_str().unwrap();
+    let metadata = fs::metadata(file_path)?;
+    let created = metadata.created()?;
+    let datetime = DateTime::<Local>::from(created);
+    let formatted_date = datetime.format("%Y-%m-%d").to_string();
+
+    let xxx = &format!(
+        "title = \"{}\"
+        date = \"{}\"
+    ",
+        name, formatted_date
+    );
+    let front_matter = RawFrontMatter::Toml(xxx);
+
+    // let (front_matter, content) = split/_content(file_path, content)?;
     let meta = PageFrontMatter::parse(&front_matter).with_context(|| {
         format!("Error when parsing front matter of section `{}`", file_path.to_string_lossy())
     })?;
