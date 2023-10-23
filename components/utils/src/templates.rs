@@ -83,7 +83,7 @@ pub fn render_template(
         return tera.render(template, &context).map_err(std::convert::Into::into);
     }
 
-    // maybe it's a default one?
+    // maybe it's a default one? // maybe?
     match name {
         "index.html" | "section.html" => render_default_tpl!(
             name,

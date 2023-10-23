@@ -1,5 +1,6 @@
-use std::fs;
+
 use std::path::Path;
+use std::process::{Command, Output};
 
 use errors::{bail, Context, Result};
 use libs::once_cell::sync::Lazy;
@@ -8,7 +9,6 @@ use libs::{serde_yaml, toml};
 
 use crate::front_matter::page::PageFrontMatter;
 use crate::front_matter::section::SectionFrontMatter;
-use chrono::{DateTime, Local};
 
 static TOML_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
@@ -86,6 +86,36 @@ pub fn split_section_content<'c>(
     Ok((meta, content))
 }
 
+fn get_git_log_output(file_path: &Path) -> Result<Output, std::io::Error> {
+    Command::new("git")
+    .arg("log")
+    .arg("--pretty=format:%ad")
+    .arg("--date=iso")
+    .arg("--reverse") // List commits in reverse order (oldest first)
+    .arg("--diff-filter=A") // Show only commits that added the file
+    .arg("--follow") // Follow file history across renames
+        .arg(file_path)
+        .output()
+}
+
+fn get_file_creation_date(file_path: &Path) -> String {
+    let git_output = get_git_log_output(file_path);
+
+    match git_output {
+        Ok(output) => {
+            let date_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !date_str.is_empty() {
+                return date_str.to_string();
+            }
+        }
+        Err(error) => {
+            eprintln!("Failed to execute command: {}", error);
+        }
+    }
+
+    "1970-01-01".to_string()
+}
+
 /// Split a file between the front matter and its content
 /// Returns a parsed `PageFrontMatter` and the rest of the content
 pub fn split_page_content<'c>(
@@ -93,16 +123,14 @@ pub fn split_page_content<'c>(
     content: &'c str,
 ) -> Result<(PageFrontMatter, &'c str)> {
     let name = file_path.file_stem().unwrap().to_str().unwrap();
-    let metadata = fs::metadata(file_path)?;
-    let created = metadata.created()?;
-    let datetime = DateTime::<Local>::from(created);
-    let formatted_date = datetime.format("%Y-%m-%d").to_string();
+    let git_date = get_file_creation_date(file_path);
+    let date_string = &git_date[..10];
 
     let xxx = &format!(
         "title = \"{}\"
         date = \"{}\"
     ",
-        name, formatted_date
+        name, date_string
     );
     let front_matter = RawFrontMatter::Toml(xxx);
 
