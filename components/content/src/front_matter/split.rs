@@ -92,7 +92,7 @@ fn get_git_log_output(file_path: &Path) -> Result<Output, std::io::Error> {
     .arg("--pretty=format:%ad")
     .arg("--date=iso")
     .arg("--reverse") // List commits in reverse order (oldest first)
-    .arg("--diff-filter=A") // Show only commits that added the file
+    // .arg("--diff-filter=A") // Show only commits that added the file
     .arg("--follow") // Follow file history across renames
         .arg(file_path)
         .output()
