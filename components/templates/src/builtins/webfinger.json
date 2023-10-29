@@ -1,0 +1,16 @@
+{
+    "subject": "acct:anton@{{ config.base_url | replace(from='https://', to='') }}",
+    "aliases": [],
+    "links": [
+        {
+          "rel": "http://webfinger.net/rel/profile-page",
+          "type": "text/html",
+          "href": "{{ config.base_url }}"
+        },
+        {
+          "rel": "self",
+          "type": "application/activity+json",
+          "href": "{{ config.base_url }}/blog/user.json"
+        }
+    ]
+}

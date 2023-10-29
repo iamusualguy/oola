@@ -1,0 +1,31 @@
+
+{
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{ config.base_url }}/blog/outbox.json",
+    "type": "OrderedCollectionPage",
+    "totalItems": "{{ pages | length }}",
+    "partOf": "{{ config.base_url }}/blog/outbox.json",
+    "orderedItems": [
+        {%- for page in pages -%}
+        {% if loop.index0 != 0 %},{% endif %}
+        {
+           "id" : "{{ page.permalink | safe }}-create",
+           "type": "Create",
+           "actor": "{{ config.base_url }}/blog/user.json",
+           "published": "{{ page.date | date(format='%Y-%m-%dT%H:%M:%S%z') }}",
+           "to": [
+            "https://www.w3.org/ns/activitystreams#Public"
+            ],
+            "cc": [
+                "{{ config.base_url }}/blog/followers.json"
+            ],
+            "object": {
+                "id": "{{ page.permalink | safe }}",
+                "url": "{{ page.permalink | safe }}",
+                "type": "Note",
+                "content": "{{ page.content | urlencode_strict }}"
+            }
+        }
+        {%- endfor -%}
+    ]
+}

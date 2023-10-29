@@ -24,6 +24,10 @@ pub static ZOLA_TERA: Lazy<Tera> = Lazy::new(|| {
         ),
         ("__zola_builtins/anchor-link.html", include_str!("builtins/anchor-link.html")),
         ("internal/alias.html", include_str!("builtins/internal/alias.html")),
+        ("__zola_builtins/webfinger.json", include_str!("builtins/webfinger.json")),
+        ("__zola_builtins/user.json", include_str!("builtins/user.json")),
+        ("__zola_builtins/followers.json", include_str!("builtins/followers.json")),
+        ("__zola_builtins/outbox.json", include_str!("builtins/outbox.json")),
     ])
     .unwrap();
     tera.register_filter("base64_encode", filters::base64_encode);

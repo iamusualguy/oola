@@ -1,0 +1,9 @@
+
+{
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "{{ config.base_url }}/blog/followers.json",
+    "type": "OrderedCollectionPage",
+    "totalItems": 0,
+    "partOf": "{{ config.base_url }}/blog/followers.json",
+    "orderedItems": []
+}

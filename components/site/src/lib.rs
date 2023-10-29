@@ -732,6 +732,8 @@ impl Site {
         start = log_time(start, "Rendered orphan pages");
         self.render_sitemap()?;
         start = log_time(start, "Rendered sitemap");
+        self.render_outbox()?;
+        start = log_time(start, "Rendered outbox");
 
         let library = self.library.read().unwrap();
         if self.config.generate_feed {
@@ -757,6 +759,12 @@ impl Site {
         start = log_time(start, "Rendered themes css");
         self.render_404()?;
         start = log_time(start, "Rendered 404");
+        self.render_webfinger_json()?;
+        start = log_time(start, "Rendered webfinger json");
+        self.render_user_json()?;
+        start = log_time(start, "Rendered users json");
+        self.render_followers_json()?;
+        start = log_time(start, "Rendered followers json");
         self.render_robots()?;
         start = log_time(start, "Rendered robots.txt");
         self.render_taxonomies()?;
@@ -870,6 +878,95 @@ impl Site {
         let output = render_template("404.html", &self.tera, context, &self.config.theme)?;
         let content = self.inject_livereload(output);
         self.write_content(&[], "404.html", content, false)?;
+        Ok(())
+    }
+
+    pub fn render_webfinger_json(&self) -> Result<()> {
+        ensure_directory_exists(&self.output_path)?;
+        let mut output_path = self.output_path.clone();
+        let folder = ".well-known";
+        output_path.push(&folder);
+
+        let folder_index = "webfinger";
+        output_path.push(&folder_index);
+
+        if !output_path.exists() {
+            create_directory(&output_path)?;
+        }
+
+        let mut context = Context::new();
+        context.insert("config", &self.config.serialize(&self.config.default_language));
+        context.insert("lang", &self.config.default_language);
+        let output = render_template("webfinger.json", &self.tera, context, &self.config.theme)?;
+        self.write_content(&[], ".well-known/webfinger/index.json", output, false)?;
+        Ok(())
+    }
+
+    pub fn render_user_json(&self) -> Result<()> {
+        ensure_directory_exists(&self.output_path)?;
+
+        let mut output_path = self.output_path.clone();
+        let folder = "blog";
+        output_path.push(&folder);
+
+        if !output_path.exists() {
+            create_directory(&output_path)?;
+        }
+
+        let mut context = Context::new();
+        context.insert("config", &self.config.serialize(&self.config.default_language));
+        let output = render_template("user.json", &self.tera, context, &self.config.theme)?;
+        self.write_content(&[], "blog/user.json", output, false)?;
+        Ok(())
+    }
+
+    pub fn  render_followers_json(&self) -> Result<()> {
+        ensure_directory_exists(&self.output_path)?;
+
+        let mut output_path = self.output_path.clone();
+        let folder = "blog";
+        output_path.push(&folder);
+
+        if !output_path.exists() {
+            create_directory(&output_path)?;
+        }
+
+        let mut context = Context::new();
+        context.insert("config", &self.config.serialize(&self.config.default_language));
+        let output = render_template("followers.json", &self.tera, context, &self.config.theme)?;
+        self.write_content(&[], "blog/followers.json", output, false)?;
+        Ok(())
+    }
+
+
+    // todo paging
+    pub fn render_outbox(&self) -> Result<()> {
+        ensure_directory_exists(&self.output_path)?;
+        
+        let mut output_path = self.output_path.clone();
+        let folder = "blog";
+        output_path.push(&folder);
+
+        if !output_path.exists() {
+            create_directory(&output_path)?;
+        }
+
+        let library = self.library.read().unwrap();
+      
+        let pages: Vec<_> = library.pages.values().collect();
+
+        let mut context = Context::new();
+        context.insert("config", &self.config.serialize(&self.config.default_language));
+
+        let p = pages
+            .iter()
+            .map(|x| x.serialize_without_siblings(&library))
+            .collect::<Vec<_>>();
+
+        context.insert("pages", &p);
+
+        let output = render_template("outbox.json", &self.tera, context, &self.config.theme)?;
+        self.write_content(&[], "blog/outbox.json", output, false)?;
         Ok(())
     }
 

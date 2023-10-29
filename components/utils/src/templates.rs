@@ -19,6 +19,7 @@ macro_rules! render_default_tpl {
 pub enum ShortcodeFileType {
     Markdown,
     Html,
+    Json
 }
 
 #[derive(Debug, Clone)]
@@ -41,8 +42,10 @@ pub fn get_shortcodes(tera: &Tera) -> HashMap<String, ShortcodeDefinition> {
     for (identifier, template) in tera.templates.iter() {
         let (file_type, ext_len) = if template.name.ends_with(".md") {
             (ShortcodeFileType::Markdown, "md".len())
-        } else {
+        } else if template.name.ends_with(".html") {
             (ShortcodeFileType::Html, "html".len())
+        } else {
+            (ShortcodeFileType::Json, "json".len())
         };
 
         if template.name.starts_with("shortcodes/") {
