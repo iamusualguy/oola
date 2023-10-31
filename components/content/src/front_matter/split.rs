@@ -87,14 +87,17 @@ pub fn split_section_content<'c>(
 }
 
 fn get_git_log_output(file_path: &Path) -> Result<Output, std::io::Error> {
+    let parent_dir = file_path.parent().unwrap();
+    let file_name = file_path.file_name().unwrap();
     Command::new("git")
-    .arg("log")
-    .arg("--pretty=format:%ad")
-    .arg("--date=iso")
-    .arg("--reverse") // List commits in reverse order (oldest first)
-    // .arg("--diff-filter=A") // Show only commits that added the file
-    .arg("--follow") // Follow file history across renames
-        .arg(file_path)
+        .arg("log")
+        .arg("--pretty=format:%aI")
+        .arg("--date=iso")
+        .arg("--reverse")
+         // .arg("--diff-filter=A") // Show only commits that added the file
+        .arg("--follow")
+        .arg(file_name)
+        .current_dir(parent_dir)
         .output()
 }
 
@@ -124,13 +127,13 @@ pub fn split_page_content<'c>(
 ) -> Result<(PageFrontMatter, &'c str)> {
     let name = file_path.file_stem().unwrap().to_str().unwrap();
     let git_date = get_file_creation_date(file_path);
-    let date_string = &git_date[..10];
+    let date_time_string = &git_date[..19];
 
     let xxx = &format!(
         "title = \"{}\"
         date = \"{}\"
     ",
-        name, date_string
+        name, date_time_string
     );
     let front_matter = RawFrontMatter::Toml(xxx);
 
